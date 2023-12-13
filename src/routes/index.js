@@ -10,26 +10,28 @@ router.get("/micuenta", async (req, res) => {
   const { apikey } = req.body;
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?filters[apikey][$eq]=${apikey}`, {
-
-      method: "GET",
+    // Primera solicitud con axios
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?populate=*`, {
+      params: {
+        "filters[apikey][$eq]": apikey,
+      },
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.NEXT_PUBLIC_STRAPI_API_KEY}`,
       },
-      cache: "no-store",
     });
+
     if (response.status !== 200) {
       throw new Error(`Failed to fetch data, ${response.status}`);
     }
 
-    const usuario = await response.json();
+    const usuario = response.data;
 
-    // Check if data is empty in the response
-    if (usuario.data.length === 0) {
-      res.json({ message: "Apikey incorrecta" });
+    if (usuario.data.length < 1) {
+      res.send("Usuario no encontrado");
       return;
     }
+
     const email = usuario.data[0]?.attributes?.email;
     const userapikeystrapi = usuario.data[0].attributes.apikey;
     const vencimientoPlan = new Date(usuario.data[0].attributes.vencimiento);
