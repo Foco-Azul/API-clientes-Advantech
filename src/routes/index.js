@@ -3,7 +3,63 @@ const express = require('express');
 const router = express.Router();
 const https = require('https');
 
-// Resto de tu código aquí
+/**
+ * @openapi
+ * /micuenta:
+ *   get:
+ *     summary: Obtener información de la cuenta utilizando la API key
+ *     tags:
+ *       - Micuenta
+ *     description: Obtener información de la cuenta utilizando la API key
+ *     parameters:
+ *       - in: query
+ *         name: apikey
+ *         required: true
+ *         description: La API key asociada con la cuenta.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Respuesta exitosa
+ *         content:
+ *           application/json:
+ *             example:
+ *               creditos: 100
+ *               vencimiento_plan: "2023-12-31T23:59:59.999Z"
+ *               api_key: "tu-api-key"
+ *               user_name: "nombre_de_usuario"
+ *       400:
+ *         description: Parámetros de solicitud inválidos
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Parámetros de solicitud inválidos"
+ *       401:
+ *         description: No autorizado - La API key es incorrecta
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Apikey errónea"
+ *       403:
+ *         description: Prohibido - La cuenta está vencida
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "La cuenta está vencida"
+ *       404:
+ *         description: Usuario no encontrado
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Usuario no encontrado"
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Error al obtener datos"
+ */
+
 
 router.get("/micuenta", async (req, res) => {
 
@@ -61,6 +117,80 @@ router.get("/micuenta", async (req, res) => {
   }
 
 });
+
+/**
+ * @openapi
+ * /busqueda:
+ *   get:
+ *     summary: Realizar una búsqueda
+ *     tags:
+ *       - Búsqueda
+ *     description: |
+ *       Inicia una búsqueda basada en la API key, sujetos y fuente proporcionados.
+ *       Valida la cuenta, sujetos, fuente y créditos disponibles antes de proceder con la búsqueda.
+ *     parameters:
+ *       - in: query
+ *         name: apikey
+ *         required: true
+ *         description: La API key asociada con la cuenta.
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sujetos
+ *         required: true
+ *         description: Un array de sujetos a buscar.
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *       - in: query
+ *         name: fuente
+ *         required: true
+ *         description: La fuente para la búsqueda (puede ser "noticias", "judicial" , "accionistas", "titulos").
+ *         schema:
+ *           type: string
+ *           enum: ["noticias", "judicial" , "accionistas", "titulos"]
+ *     responses:
+ *       200:
+ *         description: Respuesta exitosa
+ *         content:
+ *           application/json:
+ *             example:
+ *               id_busqueda: "12345"
+ *               creditos_consumidos: 10
+ *               creditos_restantes: 90
+ *       400:
+ *         description: Parámetros de solicitud inválidos
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Parámetros de solicitud inválidos"
+ *       401:
+ *         description: No autorizado - La API key es incorrecta
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Apikey incorrecta"
+ *       403:
+ *         description: Prohibido - La cuenta está vencida o los créditos son insuficientes
+ *         content:
+ *           application/json:
+ *             examples:
+ *               - message: "La cuenta está vencida"
+ *               - message: "Créditos insuficientes"
+ *       404:
+ *         description: Usuario no encontrado
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Usuario no encontrado"
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Error interno del servidor"
+ */
 
 
 router.get("/busqueda", async (req, res) => {
@@ -231,6 +361,74 @@ router.get("/busqueda", async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /datos:
+ *   get:
+ *     summary: Obtener datos para una búsqueda específica
+ *     tags:
+ *       - Datos
+ *     description: |
+ *       Recupera datos para una búsqueda específica basada en la API key y el ID de búsqueda proporcionados.
+ *       Valida la cuenta, el ID de búsqueda y la API key antes de proceder con la recuperación de datos.
+ *     parameters:
+ *       - in: query
+ *         name: apikey
+ *         required: true
+ *         description: La API key asociada con la cuenta.
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: id_busqueda
+ *         required: true
+ *         description: El ID de la búsqueda para la cual se solicitan datos.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Respuesta exitosa
+ *         content:
+ *           application/json:
+ *             example:
+ *               data: { /* Tu estructura de datos aquí * / }
+ *       400:
+ *         description: Parámetros de solicitud inválidos
+ *         content:
+ *           application/json:
+ *             example:
+ *               messages:
+ *                 - "Parámetros de solicitud inválidos"
+ *       401:
+ *         description: No autorizado - La API key es incorrecta
+ *         content:
+ *           application/json:
+ *             example:
+ *               messages:
+ *                 - "Apikey incorrecta"
+ *       403:
+ *         description: Prohibido - La cuenta está vencida
+ *         content:
+ *           application/json:
+ *             example:
+ *               messages:
+ *                 - "La cuenta está vencida"
+ *       404:
+ *         description: Usuario no encontrado o búsqueda no encontrada
+ *         content:
+ *           application/json:
+ *             example:
+ *               messages:
+ *                 - "Usuario no encontrado"
+ *                 - "Búsqueda no encontrada"
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             example:
+ *               messages:
+ *                 - "Error interno del servidor"
+ */
+
 
 router.get("/datos", async (req, res) => {
   const { apikey, id_busqueda } = req.body;
@@ -334,6 +532,67 @@ router.get("/datos", async (req, res) => {
     res.status(500).send('Error interno del servidor en la primera solicitud con axios');
   }
 });
+
+/**
+ * @openapi
+ * /historial-de-busqueda:
+ *   get:
+ *     summary: Obtener historial de búsqueda para un usuario
+ *     tags:
+ *       - HistorialDeBusqueda
+ *     description: |
+ *       Recupera el historial de búsqueda para un usuario basado en la API key proporcionada.
+ *       Valida la cuenta, la API key y la fecha de vencimiento antes de proceder con la recuperación del historial.
+ *     parameters:
+ *       - in: query
+ *         name: apikey
+ *         required: true
+ *         description: La API key asociada con la cuenta.
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Respuesta exitosa
+ *         content:
+ *           application/json:
+ *             example:
+ *               historial: [{ /* Tu estructura de historial aquí * / }]
+ *       400:
+ *         description: Parámetros de solicitud inválidos
+ *         content:
+ *           application/json:
+ *             example:
+ *               messages:
+ *                 - "Parámetros de solicitud inválidos"
+ *       401:
+ *         description: No autorizado - La API key es incorrecta
+ *         content:
+ *           application/json:
+ *             example:
+ *               messages:
+ *                 - "Apikey incorrecta"
+ *       403:
+ *         description: Prohibido - La cuenta está vencida
+ *         content:
+ *           application/json:
+ *             example:
+ *               messages:
+ *                 - "La cuenta está vencida"
+ *       404:
+ *         description: Usuario no encontrado
+ *         content:
+ *           application/json:
+ *             example:
+ *               messages:
+ *                 - "Usuario no encontrado"
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             example:
+ *               messages:
+ *                 - "Error interno del servidor"
+ */
 
 router.get("/historial-de-busqueda", async (req, res) => {
   const { apikey } = req.body;
