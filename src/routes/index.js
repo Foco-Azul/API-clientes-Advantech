@@ -7,10 +7,10 @@ const https = require('https');
 
 router.get("/micuenta", async (req, res) => {
 
-  const { email, apikey } = req.body;
+  const { apikey } = req.body;
 
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?filters[email][$eq]=${email}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?filters[apikey][$eq]=${apikey}`, {
 
       method: "GET",
       headers: {
@@ -24,14 +24,20 @@ router.get("/micuenta", async (req, res) => {
     }
 
     const usuario = await response.json();
+
+    // Check if data is empty in the response
+    if (usuario.data.length === 0) {
+      res.json({ message: "Apikey incorrecta" });
+      return;
+    }
+    const email = usuario.data[0]?.attributes?.email;
     const userapikeystrapi = usuario.data[0].attributes.apikey;
     const vencimientoPlan = new Date(usuario.data[0].attributes.vencimiento);
-
 
     // Validar si la cuenta está vencida
     const currentDate = new Date();
     if (vencimientoPlan < currentDate) {
-      res.send("La cuenta está vencida");
+      res.json({ message: "La cuenta está vencida" });
       return;
     }
 
@@ -43,26 +49,26 @@ router.get("/micuenta", async (req, res) => {
         "api_key": usuario.data[0].attributes.apikey,
         "user_name": usuario.data[0].attributes.username
       }
-      res.send(micuenta);
+      res.json(micuenta);
     } else {
-      res.send("Apikey erronea");
+      res.json({ message: "Apikey erronea" });
     }
 
   } catch (error) {
-    throw new Error(`Failed to fetch data, ${error}`);
+    res.status(500).json({ error: `Failed to fetch data, ${error.message}` });
   }
 
 });
 
 
 router.get("/busqueda", async (req, res) => {
-  const { email, apikey, sujetos, fuente } = req.body;
+  const { apikey, sujetos, fuente } = req.body;
 
   try {
     // Primera solicitud con axios
     const response = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?populate=*&`, {
       params: {
-        "filters[email][$eq]": email,
+        "filters[apikey][$eq]": apikey,
       },
       headers: {
         "Content-Type": "application/json",
@@ -80,7 +86,7 @@ router.get("/busqueda", async (req, res) => {
       res.send("Usuario no encontrado");
       return;
     }
-
+    const email = usuario.data[0]?.attributes?.email;
     const userapikeystrapi = usuario.data[0]?.attributes?.apikey;
     const vencimientoPlan = new Date(usuario.data[0]?.attributes?.vencimiento);
     const creditosusuario = usuario.data[0].attributes.creditos
@@ -225,13 +231,13 @@ router.get("/busqueda", async (req, res) => {
 
 
 router.get("/datos", async (req, res) => {
-  const { email, apikey, id_busqueda } = req.body;
+  const { apikey, id_busqueda } = req.body;
 
   try {
     // Primera solicitud con axios
     const response = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?populate=*&`, {
       params: {
-        "filters[email][$eq]": email,
+        "filters[apikey][$eq]": apikey,
       },
       headers: {
         "Content-Type": "application/json",
@@ -249,7 +255,7 @@ router.get("/datos", async (req, res) => {
       res.send("Usuario no encontrado");
       return;
     }
-
+    const email = usuario.data[0]?.attributes?.email;
     const userapikeystrapi = usuario.data[0]?.attributes?.apikey;
     const vencimientoPlan = new Date(usuario.data[0]?.attributes?.vencimiento);
 
@@ -327,4 +333,99 @@ router.get("/datos", async (req, res) => {
   }
 });
 
+router.get("/historial-de-busqueda", async (req, res) => {
+  const { apikey } = req.body;
+
+  try {
+    // Primera solicitud con axios
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?populate=*`, {
+      params: {
+        "filters[apikey][$eq]": apikey,
+      },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_STRAPI_API_KEY}`,
+      },
+    });
+
+    if (response.status !== 200) {
+      throw new Error(`Failed to fetch data, ${response.status}`);
+    }
+
+    const usuario = response.data;
+
+    if (usuario.data.length < 1) {
+      res.send("Usuario no encontrado");
+      return;
+    }
+
+    const email = usuario.data[0]?.attributes?.email;
+    const userapikeystrapi = usuario.data[0]?.attributes?.apikey;
+    const vencimientoPlan = new Date(usuario.data[0]?.attributes?.vencimiento);
+    const creditosusuario = usuario.data[0].attributes.creditos
+    const usuarioid = usuario.data[0].id
+    const usuarioplanid = usuario.data[0].attributes.plan?.data.id
+
+    // Validar si la cuenta está vencida
+    const currentDate = new Date();
+    if (vencimientoPlan < currentDate) {
+      res.send("La cuenta está vencida");
+      return;
+    }
+    // Validar si la apikey es la correcta
+    if (userapikeystrapi === apikey) {
+      try {  
+        let historial = await pedirHistorialCompleto(email)
+        res.send(buscarHistorialDeBusqueda(historial));
+      } catch (error) {
+        console.error('Error en la segunda solicitud con axios:', error);
+        res.status(500).send('Error interno del servidor en la segunda solicitud con axios');
+      }
+    } else {
+      res.send("Apikey incorrecta");
+    }
+  } catch (error) {
+    console.error('Error en la primera solicitud con axios:', error);
+    res.status(500).send('Error interno del servidor en la primera solicitud con axios');
+  }
+});
+
+function buscarHistorialDeBusqueda(respuesta) {
+  const historiales = respuesta.data[0].attributes.historials.data;
+
+  // Filtrar y seleccionar los elementos con 'creditos' menores a 0
+  const historialesSeleccionados = historiales
+    .filter(historial => historial.attributes.creditos < 0)
+    .map(historial => {
+      return {
+        fecha: historial.attributes.fecha,
+        creditos: historial.attributes.creditos,
+        consulta: historial.attributes.consulta,
+        id_busqueda: historial.attributes.query_id
+      };
+    });
+
+  // Ahora 'historialesSeleccionados' contiene solo los elementos con 'creditos' menores a 0
+  console.log(historialesSeleccionados);
+
+  return historialesSeleccionados;
+}
+
+async function pedirHistorialCompleto(email) {
+  try {
+    let config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: 'https://dev.advantech.com.ec:1334/api/auth0users?filters[email][$eq]='+email+'&populate=historials.*',
+      headers: { 
+        'Authorization': 'Bearer 2d94f73c95c1de311f77de3acce929a2d0f2fdee17e3cb512e62f481197d019b836741f0e914d00085b3a79fcc6025f8c7611402cf4ad43c977a24b44190a73045cdfbc761e1acdbd87a5ad9a05c47c023363d7529e480086eeda412302bc420b1cefc092f532cb804c13ee7fc7a104621741516b2486f303f0f382e2ecb7013'
+      }
+    };
+    const response = await axios.request(config);
+    return response.data;
+  } catch (error) {
+    console.error('Error en la segunda solicitud con axios:', error);
+    throw error; // Lanzar el error para que sea capturado por el bloque catch en miFuncion
+  }
+}
 module.exports = router;
