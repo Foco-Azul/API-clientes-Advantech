@@ -750,7 +750,7 @@ router.get("/historial-de-busqueda", async (req, res) => {
         let historial = await pedirHistorialCompleto(email)
         //res.send(buscarHistorialDeBusqueda(historial));
         res.json({
-          success: false,
+          success: true,
           data: buscarHistorialDeBusqueda(historial)
         });
       } catch (error) {
