@@ -61,12 +61,18 @@ const https = require('https');
  */
 
 
-router.get("/micuenta", async (req, res) => {
 
+router.get("/micuenta", async (req, res) => {
   const { apikey } = req.body;
 
   try {
-    // Primera solicitud con axios
+    if (!apikey) {
+      res.json({
+        success: false,
+        error: "Se requiere una apikey"
+      });
+      return;
+    }
     const response = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?populate=*`, {
       params: {
         "filters[apikey][$eq]": apikey,
@@ -82,9 +88,11 @@ router.get("/micuenta", async (req, res) => {
     }
 
     const usuario = response.data;
-
     if (usuario.data.length < 1) {
-      res.send("Usuario no encontrado");
+      res.json({
+        success: false,
+        error: "Usuario no encontrado"
+      });
       return;
     }
 
@@ -92,30 +100,39 @@ router.get("/micuenta", async (req, res) => {
     const userapikeystrapi = usuario.data[0].attributes.apikey;
     const vencimientoPlan = new Date(usuario.data[0].attributes.vencimiento);
 
-    // Validar si la cuenta está vencida
     const currentDate = new Date();
     if (vencimientoPlan < currentDate) {
-      res.json({ message: "La cuenta está vencida" });
+      res.json({
+        success: false,
+        error: "La cuenta está vencida"
+      });
       return;
     }
 
-    // Validar si la apikey es la correcta
     if (userapikeystrapi == apikey) {
       const micuenta = {
         "creditos": usuario.data[0].attributes.creditos,
         "vencimiento_plan": vencimientoPlan,
         "api_key": usuario.data[0].attributes.apikey,
         "user_name": usuario.data[0].attributes.username
-      }
-      res.json(micuenta);
+      };
+      res.json({
+        success: true,
+        data: micuenta
+      });
     } else {
-      res.json({ message: "Apikey erronea" });
+      res.json({
+        success: false,
+        error: "Apikey erronea"
+      });
     }
 
   } catch (error) {
-    res.status(500).json({ error: `Failed to fetch data, ${error.message}` });
+    res.status(500).json({
+      success: false,
+      error: `Failed to fetch data, ${error.message}`
+    });
   }
-
 });
 
 /**
@@ -197,6 +214,13 @@ router.get("/busqueda", async (req, res) => {
   const { apikey, sujetos, fuente } = req.body;
 
   try {
+    if (!apikey || !sujetos || !fuente) {
+      res.json({
+        success: false,
+        error: "Se requiere una apikey, sujetos y fuente"
+      });
+      return;
+    }
     // Primera solicitud con axios
     const response = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?populate=*&`, {
       params: {
@@ -215,7 +239,10 @@ router.get("/busqueda", async (req, res) => {
     const usuario = response.data;
 
     if (usuario.data.length < 1) {
-      res.send("Usuario no encontrado");
+      res.json({
+        success: false,
+        error: "Usuario no encontrado"
+      });
       return;
     }
     const email = usuario.data[0]?.attributes?.email;
@@ -228,13 +255,19 @@ router.get("/busqueda", async (req, res) => {
     // Validar si la cuenta está vencida
     const currentDate = new Date();
     if (vencimientoPlan < currentDate) {
-      res.send("La cuenta está vencida");
+      res.json({
+        success: false,
+        error: "La cuenta está vencida"
+      });
       return;
     }
 
     // Validar que sujetos sea un array de strings
     if (!Array.isArray(sujetos)) {
-      res.send("Sujetos debe ser un array de strings");
+      res.json({
+        success: false,
+        error: "Sujetos debe ser un array de strings"
+      });
       return;
     }
 
@@ -260,7 +293,10 @@ router.get("/busqueda", async (req, res) => {
         );
 
         if (!fuenteseleccionada) {
-          res.send("Fuente inválida")
+          res.json({
+            success: false,
+            error: "Fuente inválida"
+          });
           return
         }
 
@@ -268,7 +304,10 @@ router.get("/busqueda", async (req, res) => {
         const creditosrestantes = creditosusuario - creditosconsumidos
 
         if (creditosrestantes < 0) {
-          res.send("Créditos insuficientes")
+          res.json({
+            success: false,
+            error: "Créditos insuficientes"
+          });
           return
         }
 
@@ -302,7 +341,10 @@ router.get("/busqueda", async (req, res) => {
           "creditos_restantes": creditosrestantes
         }
 
-        res.send(respuestacompleta);
+        res.json({
+          success: true,
+          data: respuestacompleta
+        });
 
         // Realizar la solicitud PUT para restar los créditos
         const putResponse = await axios.put(
@@ -350,14 +392,26 @@ router.get("/busqueda", async (req, res) => {
 
       } catch (error) {
         console.error('Error en la segunda solicitud con axios:', error);
-        res.status(500).send('Error interno del servidor en la segunda solicitud con axios');
+        //res.status(500).send('Error interno del servidor en la segunda solicitud con axios');
+        res.json({
+          success: false,
+          error: "Error interno del servidor en la segunda solicitud con axios"
+        });
       }
     } else {
-      res.send("Apikey incorrecta");
+      //res.send("Apikey incorrecta");
+      res.json({
+        success: false,
+        error: "Apikey incorrecta"
+      });
     }
   } catch (error) {
     console.error('Error en la primera solicitud con axios:', error);
-    res.status(500).send('Error interno del servidor en la primera solicitud con axios');
+    //res.status(500).send('Error interno del servidor en la primera solicitud con axios');
+    res.json({
+      success: false,
+      error: "Error interno del servidor en la primera solicitud con axios"
+    });
   }
 });
 
@@ -434,6 +488,13 @@ router.get("/datos", async (req, res) => {
   const { apikey, id_busqueda } = req.body;
 
   try {
+    if (!apikey || !id_busqueda) {
+      res.json({
+        success: false,
+        error: "Se requiere una apikey y id_busqueda"
+      });
+      return;
+    }
     // Primera solicitud con axios
     const response = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?populate=*&`, {
       params: {
@@ -452,7 +513,11 @@ router.get("/datos", async (req, res) => {
     const usuario = response.data;
 
     if (usuario.data.length < 1) {
-      res.send("Usuario no encontrado");
+      //res.send("Usuario no encontrado");
+      res.json({
+        success: false,
+        error: "Usuario no encontrado"
+      });
       return;
     }
     const email = usuario.data[0]?.attributes?.email;
@@ -462,7 +527,11 @@ router.get("/datos", async (req, res) => {
     // Validar si la cuenta está vencida
     const currentDate = new Date();
     if (vencimientoPlan < currentDate) {
-      res.send("La cuenta está vencida");
+      //res.send("La cuenta está vencida");
+      res.json({
+        success: false,
+        error: "La cuenta está vencida"
+      });
       return;
     }
 
@@ -488,23 +557,30 @@ router.get("/datos", async (req, res) => {
 
         // Manejar la respuesta de la segunda solicitud aquí
         if (response2.data.status == "FAILED") {
-          res.send("Búsqueda fallida");
+          //res.send("Búsqueda fallida");
+          res.json({
+            success: true,
+            status: "FAILED"
+          });
           return
         }
 
         if (response2.data.status == "IN PROGRESS") {
-          res.send("Búsqueda en progreso");
+          //res.send("Búsqueda en progreso");
+          res.json({
+            success: true,
+            status: "IN PROGRESS"
+          });
           return
         }
 
         if (response2.data.status === "READY") {
-
           const data = JSON.stringify({
             "query_id": id_busqueda,
             "selection": {},
             "key": process.env.NEXT_PUBLIC_ADVANTECH_PRIVATE_KEY,
           });
-
+        
           const config = {
             method: 'post',
             url: `${process.env.NEXT_PUBLIC_ADVANTECH_PRIVATE_URL}/data/get_full_data`,
@@ -514,22 +590,42 @@ router.get("/datos", async (req, res) => {
             data: data,
             httpsAgent: new https.Agent({ rejectUnauthorized: false }),
           };
-
-          const datos = await axios(config);
-
-          res.send(datos.data.data)
+        
+          const datosResponse = await axios(config);
+        
+          // Evitar la serialización de estructuras circulares
+          const datos = {
+            success: true,
+            status: "READY",
+            data: datosResponse.data.data
+          };
+        
+          res.json(datos);
         }
 
       } catch (error) {
         console.error('Error en la segunda solicitud con axios:', error);
-        res.status(500).send('Error interno del servidor en la segunda solicitud con axios');
+        //res.status(500).send('Error interno del servidor en la segunda solicitud con axios');
+        res.json({
+          success: false,
+          error: "Error interno del servidor en la segunda solicitud con axios"
+        });
       }
     } else {
-      res.send("Apikey incorrecta");
+      //res.send("Apikey incorrecta");
+      res.json({
+        success: false,
+        error: "Apikey incorrecta"
+      });
     }
   } catch (error) {
     console.error('Error en la primera solicitud con axios:', error);
-    res.status(500).send('Error interno del servidor en la primera solicitud con axios');
+    //res.status(500).send('Error interno del servidor en la primera solicitud con axios');
+    res.json({
+      success: false,
+      error: "Error interno del servidor en la primera solicitud con axios"
+    });
+    return
   }
 });
 
@@ -598,6 +694,13 @@ router.get("/historial-de-busqueda", async (req, res) => {
   const { apikey } = req.body;
 
   try {
+    if (!apikey) {
+      res.json({
+        success: false,
+        error: "Se requiere una apikey"
+      });
+      return;
+    }
     // Primera solicitud con axios
     const response = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?populate=*`, {
       params: {
@@ -616,7 +719,11 @@ router.get("/historial-de-busqueda", async (req, res) => {
     const usuario = response.data;
 
     if (usuario.data.length < 1) {
-      res.send("Usuario no encontrado");
+      //res.send("Usuario no encontrado");
+      res.json({
+        success: false,
+        error: "Usuario no encontrado"
+      });
       return;
     }
 
@@ -630,24 +737,44 @@ router.get("/historial-de-busqueda", async (req, res) => {
     // Validar si la cuenta está vencida
     const currentDate = new Date();
     if (vencimientoPlan < currentDate) {
-      res.send("La cuenta está vencida");
+      //res.send("La cuenta está vencida");
+      res.json({
+        success: false,
+        error: "La cuenta está vencida"
+      });
       return;
     }
     // Validar si la apikey es la correcta
     if (userapikeystrapi === apikey) {
       try {  
         let historial = await pedirHistorialCompleto(email)
-        res.send(buscarHistorialDeBusqueda(historial));
+        //res.send(buscarHistorialDeBusqueda(historial));
+        res.json({
+          success: false,
+          data: buscarHistorialDeBusqueda(historial)
+        });
       } catch (error) {
         console.error('Error en la segunda solicitud con axios:', error);
-        res.status(500).send('Error interno del servidor en la segunda solicitud con axios');
+        //res.status(500).send('Error interno del servidor en la segunda solicitud con axios');
+        res.json({
+          success: false,
+          error: "Error interno del servidor en la segunda solicitud con axios"
+        });
       }
     } else {
-      res.send("Apikey incorrecta");
+      //res.send("Apikey incorrecta");
+      res.json({
+        success: false,
+        error: "Apikey incorrecta"
+      });
     }
   } catch (error) {
     console.error('Error en la primera solicitud con axios:', error);
-    res.status(500).send('Error interno del servidor en la primera solicitud con axios');
+    //res.status(500).send('Error interno del servidor en la primera solicitud con axios');
+    res.json({
+      success: false,
+      error: "Error interno del servidor en la primera solicitud con axios"
+    });
   }
 });
 
