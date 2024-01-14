@@ -60,6 +60,35 @@ const https = require('https');
  *               message: "Error al obtener datos"
  */
 
+function letraANumero(letra) {
+  // Convierte una letra a su posición en el alfabeto (ignora mayúsculas/minúsculas)
+  return letra.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0) + 1;
+}
+
+function claveLetrasANumeros(clave) {
+  // Convierte la clave de letras a números y suma todos los valores
+  let suma = 0;
+  for (let i = 0; i < clave.length; i++) {
+      let char = clave[i];
+      if (char.match(/[a-z]/i)) {
+          suma += letraANumero(char);
+      }
+  }
+  return suma;
+}
+
+function desencriptar(textoEncriptado) {
+  let claveNumerica = claveLetrasANumeros(`${process.env.NEXT_PUBLIC_ADVANTECH_API_SECRET}`);
+  let textoDesencriptado = '';
+
+  for (let i = 0; i < textoEncriptado.length; i += 2) {
+      let byte = parseInt(textoEncriptado.substr(i, 2), 16);
+      let desencriptado = (byte - claveNumerica + 256) % 256;
+      textoDesencriptado += desencriptado.toString(16).padStart(2, '0');
+  }
+console.log(textoDesencriptado)
+  return textoDesencriptado;
+}
 
 
 router.get("/micuenta", async (req, res) => {
@@ -75,7 +104,7 @@ router.get("/micuenta", async (req, res) => {
     }
     const response = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?populate=*`, {
       params: {
-        "filters[apikey][$eq]": apikey,
+        "filters[apikey][$eq]": desencriptar(apikey),
       },
       headers: {
         "Content-Type": "application/json",
@@ -109,7 +138,7 @@ router.get("/micuenta", async (req, res) => {
       return;
     }
 
-    if (userapikeystrapi == apikey) {
+    if (userapikeystrapi == desencriptar(apikey)) {
       const micuenta = {
         "creditos": usuario.data[0].attributes.creditos,
         "vencimiento_plan": vencimientoPlan,
@@ -224,7 +253,7 @@ router.get("/busqueda", async (req, res) => {
     // Primera solicitud con axios
     const response = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?populate=*&`, {
       params: {
-        "filters[apikey][$eq]": apikey,
+        "filters[apikey][$eq]": desencriptar(apikey),
       },
       headers: {
         "Content-Type": "application/json",
@@ -272,7 +301,8 @@ router.get("/busqueda", async (req, res) => {
     }
 
     // Validar si la apikey es la correcta
-    if (userapikeystrapi === apikey) {
+    if (userapikeystrapi == desencriptar(apikey)) {
+
       try {
         // Llamada adicional después de la validación del email y key
         const creditosFuentesResponse = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/creditos-fuentes`, {
@@ -498,7 +528,7 @@ router.get("/datos", async (req, res) => {
     // Primera solicitud con axios
     const response = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?populate=*&`, {
       params: {
-        "filters[apikey][$eq]": apikey,
+        "filters[apikey][$eq]": desencriptar(apikey),
       },
       headers: {
         "Content-Type": "application/json",
@@ -536,7 +566,7 @@ router.get("/datos", async (req, res) => {
     }
 
     // Validar si la apikey es la correcta
-    if (userapikeystrapi === apikey) {
+    if (userapikeystrapi == desencriptar(apikey)) {
       try {
         const data = JSON.stringify({
           "query_id": id_busqueda,
@@ -704,7 +734,7 @@ router.get("/historial-de-busqueda", async (req, res) => {
     // Primera solicitud con axios
     const response = await axios.get(`${process.env.NEXT_PUBLIC_STRAPI_API_URL}/auth0users?populate=*`, {
       params: {
-        "filters[apikey][$eq]": apikey,
+        "filters[apikey][$eq]": desencriptar(apikey),
       },
       headers: {
         "Content-Type": "application/json",
@@ -745,7 +775,7 @@ router.get("/historial-de-busqueda", async (req, res) => {
       return;
     }
     // Validar si la apikey es la correcta
-    if (userapikeystrapi === apikey) {
+    if (userapikeystrapi == desencriptar(apikey)) {
       try {  
         let historial = await pedirHistorialCompleto(email)
         //res.send(buscarHistorialDeBusqueda(historial));

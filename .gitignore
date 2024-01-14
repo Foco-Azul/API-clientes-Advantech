@@ -2,3 +2,5 @@
 .env
 
 index.js
+
+/node_modules
