@@ -11,13 +11,15 @@ const https = require('https');
  *     tags:
  *       - Micuenta
  *     description: Obtener información de la cuenta utilizando la API key
- *     parameters:
- *       - in: query
- *         name: apikey
- *         required: true
- *         description: La API key asociada con la cuenta.
- *         schema:
- *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               apikey:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Respuesta exitosa
@@ -167,35 +169,29 @@ router.get("/micuenta", async (req, res) => {
 /**
  * @openapi
  * /busqueda:
- *   get:
+ *   get:  # Cambiado a método POST para permitir el envío en el cuerpo
  *     summary: Realizar una búsqueda
  *     tags:
  *       - Búsqueda
  *     description: |
  *       Inicia una búsqueda basada en la API key, sujetos y fuente proporcionados.
  *       Valida la cuenta, sujetos, fuente y créditos disponibles antes de proceder con la búsqueda.
- *     parameters:
- *       - in: query
- *         name: apikey
- *         required: true
- *         description: La API key asociada con la cuenta.
- *         schema:
- *           type: string
- *       - in: query
- *         name: sujetos
- *         required: true
- *         description: Un array de sujetos a buscar.
- *         schema:
- *           type: array
- *           items:
- *             type: string
- *       - in: query
- *         name: fuente
- *         required: true
- *         description: La fuente para la búsqueda (puede ser "noticias", "judicial" , "accionistas", "titulos").
- *         schema:
- *           type: string
- *           enum: ["noticias", "judicial" , "accionistas", "titulos"]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               apikey:
+ *                 type: string
+ *               sujetos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               fuente:
+ *                 type: string
+ *                 enum: ["noticias", "judicial" , "accionistas", "titulos"]
  *     responses:
  *       200:
  *         description: Respuesta exitosa
@@ -237,6 +233,7 @@ router.get("/micuenta", async (req, res) => {
  *             example:
  *               message: "Error interno del servidor"
  */
+
 
 
 router.get("/busqueda", async (req, res) => {
@@ -448,33 +445,31 @@ router.get("/busqueda", async (req, res) => {
 /**
  * @openapi
  * /datos:
- *   get:
+ *   get:  # Cambiado a método POST para permitir el envío en el cuerpo
  *     summary: Obtener datos para una búsqueda específica
  *     tags:
  *       - Datos
  *     description: |
  *       Recupera datos para una búsqueda específica basada en la API key y el ID de búsqueda proporcionados.
  *       Valida la cuenta, el ID de búsqueda y la API key antes de proceder con la recuperación de datos.
- *     parameters:
- *       - in: query
- *         name: apikey
- *         required: true
- *         description: La API key asociada con la cuenta.
- *         schema:
- *           type: string
- *       - in: query
- *         name: id_busqueda
- *         required: true
- *         description: El ID de la búsqueda para la cual se solicitan datos.
- *         schema:
- *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               apikey:
+ *                 type: string
+ *               id_busqueda:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Respuesta exitosa
  *         content:
  *           application/json:
  *             example:
- *               data: { /* Tu estructura de datos aquí * / }
+ *               data:  Tu estructura de datos aquí 
  *       400:
  *         description: Parámetros de solicitud inválidos
  *         content:
@@ -512,6 +507,7 @@ router.get("/busqueda", async (req, res) => {
  *               messages:
  *                 - "Error interno del servidor"
  */
+
 
 
 router.get("/datos", async (req, res) => {
@@ -662,27 +658,29 @@ router.get("/datos", async (req, res) => {
 /**
  * @openapi
  * /historial-de-busqueda:
- *   get:
+ *   get:  # Cambiado a método POST para permitir el envío en el cuerpo
  *     summary: Obtener historial de búsqueda para un usuario
  *     tags:
  *       - HistorialDeBusqueda
  *     description: |
  *       Recupera el historial de búsqueda para un usuario basado en la API key proporcionada.
  *       Valida la cuenta, la API key y la fecha de vencimiento antes de proceder con la recuperación del historial.
- *     parameters:
- *       - in: query
- *         name: apikey
- *         required: true
- *         description: La API key asociada con la cuenta.
- *         schema:
- *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               apikey:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Respuesta exitosa
  *         content:
  *           application/json:
  *             example:
- *               historial: [{ /* Tu estructura de historial aquí * / }]
+ *               historial: [{  Tu estructura de historial aquí  }]
  *       400:
  *         description: Parámetros de solicitud inválidos
  *         content:
@@ -719,6 +717,7 @@ router.get("/datos", async (req, res) => {
  *               messages:
  *                 - "Error interno del servidor"
  */
+
 
 router.get("/historial-de-busqueda", async (req, res) => {
   const { apikey } = req.body;
